@@ -9,9 +9,9 @@ namespace CustomAuthPolicy.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly JwtTokenService _jwtTokenService;
+        private readonly IJwtTokenService _jwtTokenService;
 
-        public AuthController(AppDbContext context, JwtTokenService jwtTokenService)
+        public AuthController(AppDbContext context, IJwtTokenService jwtTokenService)
         {
             _context = context;
             _jwtTokenService = jwtTokenService;
@@ -29,13 +29,13 @@ namespace CustomAuthPolicy.Controllers
                 return Unauthorized();
             }
        
-            return Ok(new { Token= _jwtTokenService.GenerateJWToken(user) });
+            return Ok(new { Token = new JwtSecurityTokenHandler().WriteToken(_jwtTokenService.GenerateJWToken(user)) });
         }
     }
 
     public class LoginModel
     {
-        public string UserName { get; set; }
-        public string Password { get; set; }
+        public string UserName { get; set; }= string.Empty;
+        public string Password { get; set; } = string.Empty;
     }
 }

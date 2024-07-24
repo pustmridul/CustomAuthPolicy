@@ -1,5 +1,6 @@
 ﻿using CustomAuthPolicy.Data;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -7,15 +8,16 @@ using System.Text;
 
 namespace CustomAuthPolicy.Service
 {
-    public class JwtTokenService
+    public class JwtTokenService : IJwtTokenService
     {
-        private readonly IConfiguration _configuration;
+        private readonly JWTSettings _jwtSettings;
+    
 
-        public JwtTokenService(IConfiguration configuration)
+        public JwtTokenService(IOptions<JWTSettings> jwtSettings)
         {
-            _configuration = configuration;
+            _jwtSettings = jwtSettings.Value;
         }
-        public string GenerateJWToken(User user)
+        public JwtSecurityToken GenerateJWToken(User user)
         {
             var claims = new List<Claim>
             { 
@@ -33,27 +35,19 @@ namespace CustomAuthPolicy.Service
             return JWTGeneration(claims);
         }
 
-        private string JWTGeneration(IEnumerable<Claim> claims)
+        private JwtSecurityToken JWTGeneration(IEnumerable<Claim> claims)
         {
-            var jwtSettings = _configuration.GetSection("Jwt");
-            var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]);
-
-            var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]));
+            var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
             var signingCredentials = new SigningCredentials(symmetricSecurityKey, SecurityAlgorithms.HmacSha256);
 
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddMinutes(Convert.ToDouble(jwtSettings["ExpireMinutes"])),
-                Issuer = jwtSettings["Issuer"],
-                Audience = jwtSettings["Audience"],
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-
-            return tokenHandler.WriteToken(token);
+            var jwtSecurityToken = new JwtSecurityToken(
+                issuer: _jwtSettings.Issuer,
+                audience: _jwtSettings.Audience,
+                claims: claims,
+                notBefore: DateTime.Now,
+                expires: DateTime.Now.AddMinutes(50),
+                signingCredentials: signingCredentials);
+            return jwtSecurityToken;
             
         }
        

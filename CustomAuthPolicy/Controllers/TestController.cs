@@ -22,5 +22,11 @@ namespace CustomAuthPolicy.Controllers
             _logger.LogInformation("User claims: {@Claims}", claims);
             return Ok(claims);
         }
+        [Authorize(Policy = "PermissionPolicy2")]
+        [HttpGet]
+        public IActionResult TextEdit()
+        {
+            return Ok("edit is working");
+        }
     }
 }
